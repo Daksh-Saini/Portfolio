@@ -1,0 +1,1029 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Daksh - Future Data Scientist | Premium</title>
+    <!-- Load Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Load Three.js for 3D Background and Game -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <!-- Load Tone.js for Audio Feedback -->
+    <script src="https://unpkg.com/tone@14.7.58/build/Tone.js"></script>
+    <style>
+        /* Custom Styles for Premium/Glassmorphism Feel */
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@100..900&family=IBM+Plex+Mono:wght==400;700&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0d111c;
+            line-height: 1.6;
+        }
+        .text-mono { font-family: 'IBM Plex Mono', monospace; }
+        .title-glow { text-shadow: 0 0 10px rgba(129, 140, 248, 0.9), 0 0 5px rgba(255, 255, 255, 0.2); }
+        
+        /* Glassmorphism Card Effect */
+        .section-card {
+            background-color: rgba(31, 41, 55, 0.4); /* Reduced opacity for transparency */
+            border: 1px solid rgba(129, 140, 248, 0.2);
+            backdrop-filter: blur(8px); /* Blur behind the card */
+            box-shadow: 0 8px 32px 0 rgba(17, 24, 39, 0.4); /* Darker, more pronounced shadow */
+            transition: all 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+        }
+        .section-card:hover {
+            box-shadow: 0 0 40px rgba(129, 140, 248, 0.3);
+            border-color: rgba(129, 140, 248, 0.5);
+            transform: translateY(-2px);
+        }
+
+        /* Hero and Canvas Setup */
+        #hero { position: relative; min-height: 100vh; display: flex; flex-direction: column; justify-content: center; align-items: center; overflow: hidden; }
+        #three-js-canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 10; }
+        #hero-content { z-index: 20; position: relative; }
+
+        /* Game Canvas Styling */
+        #game-canvas {
+            border-radius: 12px;
+            box-shadow: 0 0 20px rgba(79, 70, 229, 0.5);
+            transition: border-color 0.3s;
+            cursor: pointer;
+            touch-action: none; /* Important for preventing mobile scrolling/zooming during play */
+        }
+        
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #1f2937; }
+        ::-webkit-scrollbar-thumb { background: #4f46e5; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #6366f1; }
+
+        /* Contact Link Styling for Footer */
+        .footer-contact-link {
+            transition: all 0.3s;
+            filter: grayscale(100%);
+            opacity: 0.8;
+        }
+        .footer-contact-link:hover {
+            filter: grayscale(0%);
+            opacity: 1;
+            transform: scale(1.1);
+        }
+
+        .control-btn {
+            width: 80px;
+            height: 80px;
+            margin: 8px;
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #fff;
+            background: linear-gradient(135deg, #6366f1, #a855f7, #ec4899);
+            border: 2px solid #c084fc;
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 6px 18px rgba(0, 0, 0, 0.7);
+            transition: transform 0.1s, background 0.2s;
+        }
+        .control-btn:active {
+            background: linear-gradient(135deg, #ec4899, #a855f7, #6366f1);
+            border-color: #f472b6;
+            transform: scale(0.9);
+        }
+
+        /* Mobile D-Pad Layout */
+        #game-mobile-controls {
+            user-select: none;
+            -webkit-user-select: none;
+        }
+        #game-mobile-controls .d-pad-grid {
+            display: grid;
+            grid-template-areas:
+                ". up ."
+                "left center right"
+                ". down .";
+            /* Adjusted grid width for larger buttons */
+            grid-template-columns: 1fr 1fr 1fr; 
+            width: 300px; /* Max width for d-pad to accommodate larger buttons */
+            gap: 12px;
+        }
+        /* Applying more specific rounding to make it look like a cohesive D-pad */
+        #move-up { grid-area: up; margin-bottom: 0px; border-radius: 12px 12px 0 0; }
+        #move-down { grid-area: down; margin-top: 0px; border-radius: 0 0 12px 12px; }
+        #move-left { grid-area: left; border-radius: 12px 0 0 12px; }
+        #move-right { grid-area: right; border-radius: 0 12px 12px 0; }
+        .d-pad-center { grid-area: center; width: 100%; height: 100%; margin: 0; padding: 0;}
+    </style>
+</head>
+
+<body class="text-gray-100 antialiased">
+
+    <!-- 1. HERO SECTION (THREE.JS BACKGROUND) -->
+    <header id="hero">
+        <canvas id="three-js-canvas"></canvas>
+        <div id="hero-content" class="text-center p-6 md:p-8 max-w-4xl mx-auto">
+            <img
+                id="profile-photo"
+                src="https://placehold.co/128x128/4f46e5/ffffff?text=DS"
+                onerror="this.onerror=null;this.src='https://placehold.co/128x128/4f46e5/ffffff?text=DS';"
+                alt="Daksh Saini"
+                class="w-24 h-24 sm:w-32 sm:h-32 rounded-full mx-auto mb-6 object-cover shadow-2xl border-4 border-indigo-500 transition-all duration-300 transform hover:scale-105 animate-pulse"
+            />
+            <h1 class="text-5xl md:text-7xl font-extrabold text-white mb-4 tracking-tight">
+                Daksh
+            </h1>
+            <p class="text-xl md:text-3xl font-light text-indigo-300 title-glow mb-12 text-mono">
+                Robotic Process Automation | Future Data Scientist
+            </p>
+            <div class="flex flex-col sm:flex-row justify-center space-y-4 sm:space-y-0 sm:space-x-6">
+                <a href="#projects" class="action-btn inline-block px-10 py-3 bg-indigo-600 text-white font-semibold rounded-lg shadow-2xl shadow-indigo-600/50 hover:bg-indigo-500 transition duration-300 transform hover:-translate-y-1">
+                    Analyze My Work
+                </a>
+                <a href="#game-feature" class="action-btn inline-block px-10 py-3 border border-indigo-600 text-indigo-400 font-semibold rounded-lg hover:bg-indigo-600 hover:text-white transition duration-300 transform hover:-translate-y-1">
+                    Play Data Orb Dash
+                </a>
+            </div>
+        </div>
+        <!-- Scroll Down Indicator -->
+        <a href="#about" class="absolute bottom-8 z-20 text-indigo-400 animate-bounce transition-colors duration-300 hover:text-indigo-300">
+            <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+        </a>
+    </header>
+
+    <main class="space-y-20 md:space-y-32 py-16">
+
+        <!-- 2. ABOUT ME -->
+        <section id="about" class="container mx-auto px-4 md:px-8">
+            <div class="section-card p-6 md:p-12 rounded-xl">
+                <h2 class="text-3xl sm:text-4xl font-extrabold mb-8 text-indigo-400 title-glow border-b border-indigo-400/30 pb-3 flex items-center">
+                    <svg class="w-7 h-7 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg>
+                    Aspiring Data Scientist
+                </h2>
+                <p id="about-content" class="text-lg leading-relaxed text-gray-300">
+                    <!-- Content injected by JS -->
+                </p>
+            </div>
+        </section>
+
+        <!-- 3. SKILLS AND EDUCATION -->
+        <section class="container mx-auto px-4 md:px-8">
+            <!-- Used lg:grid-cols-3 and lg:gap-12 for better PC spacing management, and ensured p-12 on skills section -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+
+                <!-- TECHNICAL STACK (Expanded content fills the space better on PC) -->
+                <div class="section-card p-6 md:p-8 lg:p-12 rounded-xl">
+                    <h2 class="text-3xl font-extrabold mb-6 text-indigo-400 title-glow border-b border-indigo-400/30 pb-3 flex items-center">
+                        <svg class="w-7 h-7 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2m-7 0h7"></path></svg>
+                        Technical Stack
+                    </h2>
+                    <div id="skills-container" class="space-y-6">
+                        <!-- Content injected by JS -->
+                    </div>
+                </div>
+
+                <!-- EDUCATION AND CERTIFICATIONS (Kept stacked) -->
+                <div class="space-y-8">
+                    <!-- EDUCATION -->
+                    <div class="section-card p-6 md:p-8 rounded-xl">
+                        <h2 class="text-3xl font-extrabold mb-6 text-indigo-400 title-glow border-b border-indigo-400/30 pb-3 flex items-center">
+                            <svg class="w-7 h-7 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18s-3.332.477-4.5 1.253"></path></svg>
+                            Academic Foundation
+                        </h2>
+                        <div id="education-container" class="space-y-6">
+                            <!-- Content injected by JS -->
+                        </div>
+                    </div>
+
+                    <!-- CERTIFICATIONS -->
+                    <div class="section-card p-6 md:p-8 rounded-xl">
+                        <h2 class="text-3xl font-extrabold mb-6 text-indigo-400 title-glow border-b border-indigo-400/30 pb-3 flex items-center">
+                            <svg class="w-7 h-7 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-7.618 3.04A12.003 12.003 0 003 12c0 2.378.435 4.672 1.272 6.786l.241.52A12.003 12.003 0 0012 22a12.003 12.003 0 007.728-3.682l.241-.52C20.565 16.672 21 14.378 21 12a12.003 12.003 0 00-1.382-6.016z"></path></svg>
+                            Verified Proficiency
+                        </h2>
+                        <div id="certifications-container" class="space-y-4">
+                            <!-- Content injected by JS -->
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- 4. PROJECTS -->
+        <section id="projects" class="container mx-auto px-4 md:px-8">
+            <div class="section-card p-6 md:p-12 rounded-xl">
+                <h2 class="text-3xl sm:text-4xl font-extrabold mb-8 text-indigo-400 title-glow border-b border-indigo-400/30 pb-3 flex items-center">
+                    <svg class="w-7 h-7 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.585.354 1.267.46 1.907.35l.235-.044z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                    Applied Solutions
+                </h2 >
+                <div id="projects-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                    <!-- Content injected by JS -->
+                </div>
+            </div>
+        </section>
+        
+        <!-- 5. INTERACTIVE MINI-GAME: DATA ORB DASH (3D) -->
+        <section id="game-feature" class="container mx-auto px-4 md:px-8">
+            <div class="section-card p-6 md:p-12 rounded-xl text-center">
+                <h2 class="text-3xl sm:text-4xl font-extrabold mb-8 text-pink-400 title-glow border-b border-pink-400/30 pb-3 flex items-center justify-center">
+                    <svg class="w-8 h-8 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    Data Orb Dash: The 3D Collection Challenge
+                </h2>
+                <p class="text-gray-400 mb-6 text-lg">Collect 10 data orbs in the fastest time. Use <span class="text-indigo-300 font-semibold hidden sm:inline">W/A/S/D or Arrow Keys</span> to move.</p>
+                <div class="flex flex-col items-center justify-center space-y-4">
+                    <div class="flex space-x-6 text-mono text-xl font-bold">
+                        <p>Orbs Collected: <span id="game-score" class="text-indigo-400">0</span>/10</p>
+                        <p>Time: <span id="game-time" class="text-green-400">0.00s</span></p>
+                        <p>Best Time: <span id="game-high-score" class="text-pink-400">N/A</span></p>
+                    </div>
+                    <!-- 3D Canvas -->
+                    <canvas id="game-canvas" width="600" height="400" class="w-full max-w-lg bg-gray-900/50 border-4 border-indigo-600"></canvas>
+                    
+                    <button id="game-start-btn" class="action-btn px-8 py-3 bg-pink-600 text-white font-semibold rounded-lg shadow-xl shadow-pink-600/50 hover:bg-pink-500 transition duration-300 transform hover:scale-105">
+                        START GAME
+                    </button>
+                    <p id="game-message" class="text-yellow-400 text-sm mt-3"></p>
+                    
+                    <!-- DEDICATED MOBILE CONTROLS (Hidden on large screens) -->
+                    <div id="game-mobile-controls" class="lg:hidden flex flex-col items-center mt-6">
+                        <p class="text-gray-400 text-sm mb-2">Mobile Controls (Tap and Hold):</p>
+                        <div class="d-pad-grid">
+                            <div class="d-pad-center"></div> <!-- Empty spacer -->
+                            <button id="move-up" class="control-btn" data-move="forward">
+                                <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 10l7-7m0 0l7 7m-7-7v18"></path></svg>
+                            </button>
+                            <div class="d-pad-center"></div> <!-- Empty spacer -->
+                            
+                            <button id="move-left" class="control-btn" data-move="left">
+                                <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
+                            </button>
+                            <button id="move-down" class="control-btn" data-move="backward">
+                                <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M19 14l-7 7m0 0l-7-7m7 7V3"></path></svg>
+                            </button>
+                            <button id="move-right" class="control-btn" data-move="right">
+                                <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- FOOTER (Updated to exclude Instagram) -->
+    <footer class="text-center py-12 mt-16 border-t border-gray-700/50 text-gray-400 text-sm bg-gray-900/40">
+        
+        <!-- Connect with Me -->
+        <h2 class="text-xl sm:text-2xl font-extrabold mb-6 text-indigo-400 title-glow flex items-center justify-center">
+            <svg class="w-6 h-6 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8m-9 13H5a2 2 0 01-2-2V5a2 2 0 012-2h14a2 2 0 012 2v14a2 2 0 01-2 2z"></path></svg>
+            Connect with Me
+        </h2>
+        <div id="footer-contact-container" class="flex flex-wrap justify-center gap-6 mb-12 max-w-lg mx-auto">
+            <!-- Content injected by JS: renderContact -->
+        </div>
+
+        <p class="mt-4 text-sm text-gray-400">Daksh Saini &copy; 2025</p>
+
+        <!-- Premium Designer Credit -->
+        <p class="mt-2 text-indigo-400 text-sm font-semibold flex items-center justify-center">
+            Designed by
+            <a href="https://www.instagram.com/krishna_website" target="_blank" rel="noopener noreferrer" class="ml-2 flex items-center group transition duration-300 hover:text-pink-400">
+                <span class="mr-1 hover:underline">krishna website</span>
+                <!-- Instagram Icon SVG for Designer -->
+                <svg class="w-5 h-5 transition-all duration-300 group-hover:scale-110" fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.25.151 4.714 1.488 4.714 4.714 0 1.266.012 1.646.07 4.85s-1.488 4.714-4.714 4.714-1.646.012-4.85.07-4.714-1.488-4.714-4.714.012-1.646.07-4.85-1.488-4.714-4.714-4.714-1.646-.012-4.85-.07s-4.714 1.488-4.714 4.714v.001c0 3.25-1.488 4.714-4.714 4.714-1.266 0-1.646-.012-4.85-.07s-4.714-1.488-4.714-4.714 0-1.646-.07-4.85 1.488-4.714 4.714-4.714 1.646-.012 4.85-.07zm-1.5 6.837a4.5 4.5 0 100 9 4.5 4.5 0 000-9zm0 8.1a3.6 3.6 0 110-7.2 3.6 3.6 0 010 7.2zm7.1-8.1a1.2 1.2 0 100 2.4 1.2 1.2 0 000-2.4z"/>
+                </svg>
+            </a>
+        </p>
+
+    </footer>
+
+    <!-- SCROLL-TO-TOP BUTTON -->
+    <button id="scrollToTopBtn" class="fixed bottom-6 right-6 p-4 bg-indigo-600 text-white rounded-full shadow-xl transition-all duration-300 z-50 hover:bg-indigo-500 opacity-0 translate-y-4 pointer-events-none">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 10l7-7m0 0l7 7m-7-7v18"></path></svg>
+    </button>
+
+    <!-- JAVASCRIPT LOGIC -->
+    <script>
+        const PORTFOLIO_DATA = {
+            name: "Daksh Saini",
+            tagline: "Future Data Scientist | RPA & Automation Enthusiast | Python Learner",
+            profilePhoto: "https://i.ibb.co/NnGYcM92/dp.jpg",
+            about: "I’m Daksh Saini, a student passionate about Robotic Process Automation (RPA) and Data Science. I aim to build intelligent solutions that automate tasks and solve real-world problems with data. My focus is on merging automation efficiency with data-driven insights to create robust, future-ready systems.",
+            education: [
+                {
+                    level: "B.Tech in Computer Science",
+                    institution: "Jaipur National University",
+                    details: 'Specialization in Robotic Process Automation (RPA) with College Dekho & ImagineXP.',
+                    link: "https://in.linkedin.com/school/jaipurnationaluniversity/?trk=public_profile_school"
+                },
+                {
+                    level: "High School (PCM)",
+                    institution: "Swami Vivekanand Government Model School, Lakheri, Bundi (Raj)",
+                    details: 'Focused on Physics, Chemistry, Maths, and basics of Python & MySQL.',
+                    link: null
+                }
+            ],
+            // --- UPDATED: Filled content in Technical Stack ---
+            skills: [
+                { category: "Programming", items: ["Python (Advanced)", "C", "HTML/CSS", "SQL", "Javascript (Basics)"] },
+                { category: "Automation & ML", items: ["RPA (UiPath, AA)", "TensorFlow (Basics)", "Pandas & NumPy", "Scikit-learn (Basics)", "Data Visualization (Matplotlib, Seaborn)"] },
+                { category: "Tools & Platforms", items: ["VS Code", "GitHub/Git", "Jupyter Notebooks", "MySQL/SQLite", "Amazon Web Services (Learning)"] },
+            ],
+            certifications: [
+                { title: "SQL (Basic)", provider: "HackerRank", link: "https://www.hackerrank.com/certificates/c23834d7df5f" },
+                { title: "Python (Basic)", provider: "HackerRank", link: "https://www.hackerrank.com/certificates/8be6ea92d198" },
+                { title: "Python Developer", provider: "Sololearn", link: "https://www.sololearn.com/certificates/CC-PMVHUE4B" },
+            ],
+            projects: [
+                {
+                    title: "Voice-For-Hands",
+                    description: "A Python project for collecting hand images, creating datasets, and training models. It enables real-time hand landmark detection for gesture-based interaction.",
+                    github: "https://github.com/Daksh-Saini/Voice-For-Hands"
+                },
+                {
+                    title: "Real-Time Voice Translator",
+                    description: "A Python-based tool for translating voice in real time. It helps break language barriers with instant speech-to-speech translation.",
+                    github: "https://github.com/Daksh-Saini/Real_Time_Voice_Translator"
+                }
+                //{
+                //    title: "Real Time Object Detection",
+                //    description: "A TensorFlow + Jupyter Notebook project for real-time object detection. It demonstrates live detection of objects using deep learning models.",
+                //    github: "https://github.com/Daksh-Saini/RealTimeObjectDetection"
+                //}
+            ],
+            contact: [
+                { icon: '<svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.477 2 2 6.484 2 12.017c0 4.417 2.865 8.163 6.83 9.489.5.092.682-.217.682-.483 0-.237-.008-.888-.013-1.745-2.782.605-3.37-1.341-3.37-1.341-.454-1.153-1.107-1.46-1.107-1.46-.906-.618.069-.606.069-.606 1.002.07 1.531 1.032 1.531 1.032.892 1.528 2.341 1.085 2.91.828.092-.643.349-1.085.635-1.336-2.22-.253-4.555-1.111-4.555-4.945 0-1.09.39-1.984 1.029-2.685-.103-.253-.446-1.272.098-2.65 0 0 .84-.268 2.75 1.025A9.522 9.522 0 0112 6.54c.85.006 1.701.114 2.51.33A9.52 9.52 0 0118.902 5.7c.074.453.418 1.401.098 2.65.639.701 1.029 1.595 1.029 2.685 0 3.842-2.337 4.686-4.566 4.935.359.308.678.919.678 1.854 0 1.336-.012 2.417-.012 2.747 0 .267.18.579.688.482C21.137 20.182 24 16.437 24 12.017 24 6.484 19.522 2 14 2z"/></svg>', label: "GitHub", link: "https://github.com/Daksh-Saini" },
+                { icon: '<svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"><path d="M20 3H4a2 2 0 00-2 2v14a2 2 0 002 2h16a2 2 0 002-2V5a2 2 0 00-2-2zM8 19H5v-8h3v8zm-1.5-9A1.5 1.5 0 117 8.5 1.5 1.5 0 016.5 10zm11 9h-3v-4c0-1.41-.6-2.5-1.81-2.5A2.39 2.39 0 0012 14.5V19h-3v-8h2.64l.11.83c.31-.56.88-1.27 2.42-1.27C17.02 10.56 18 12.03 18 14.71V19z"/></svg>', label: "LinkedIn", link: "https://www.linkedin.com/in/daksh-saini-45a788321" },
+                { icon: '<svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"><path d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/></svg>', label: "Email", link: "mailto:dakshsaini2407@gmail.com" },
+            ]
+        };
+
+        // --- Tone.js Setup (Audio Feedback) ---
+        let synth, gameSynth;
+        let isAudioContextInitialized = false;
+
+        function initializeAudio() {
+            if (isAudioContextInitialized) return;
+
+            if (typeof Tone !== 'undefined') {
+                Tone.start().then(() => {
+                    // General UI synth (clean, percussive)
+                    synth = new Tone.PolySynth(Tone.Synth, {
+                        oscillator: { type: "triangle" },
+                        envelope: { attack: 0.005, decay: 0.2, sustain: 0.0, release: 0.1 },
+                        volume: -15
+                    }).toDestination();
+
+                    // Game synth (more aggressive/futuristic)
+                    gameSynth = new Tone.PolySynth(Tone.Synth, {
+                        oscillator: { type: "square" },
+                        envelope: { attack: 0.01, decay: 0.1, sustain: 0.0, release: 0.05 },
+                        volume: -10
+                    }).toDestination();
+
+                    isAudioContextInitialized = true;
+                }).catch(err => console.error("Tone.js initialization failed:", err));
+            }
+        }
+
+        function playSound(synthName, note = 'C4', duration = '8n') {
+            if (!isAudioContextInitialized) initializeAudio();
+            const selectedSynth = synthName === 'game' ? gameSynth : synth;
+            if (selectedSynth) {
+                selectedSynth.triggerAttackRelease(note, duration);
+            }
+        }
+
+        // Attach a one-time click listener to initialize audio
+        document.addEventListener('click', initializeAudio, { once: true });
+
+
+        // --- Three.js Setup (Interactive 3D Background) ---
+        function setupThreeJS() {
+            if (typeof THREE === 'undefined') return;
+
+            const canvas = document.getElementById('three-js-canvas');
+            const container = canvas.parentElement;
+
+            let scene, camera, renderer, particles, animationFrameId;
+            let mouseX = 0, mouseY = 0;
+
+            const init = () => {
+                const width = container.clientWidth;
+                const height = container.clientHeight;
+
+                // 1. Scene and Camera
+                scene = new THREE.Scene();
+                camera = new THREE.PerspectiveCamera(70, width / height, 1, 1000);
+                camera.position.z = 200;
+
+                // 2. Renderer
+                renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true, alpha: true });
+                renderer.setSize(width, height);
+                renderer.setPixelRatio(window.devicePixelRatio);
+                renderer.setClearColor(0x0d111c, 0);
+
+                // 3. Particles (More dense and colorful)
+                const particleCount = 1000;
+                const geometry = new THREE.BufferGeometry();
+                const positions = new Float32Array(particleCount * 3);
+                const colors = new Float32Array(particleCount * 3);
+                const color = new THREE.Color();
+
+                for (let i = 0; i < particleCount * 3; i += 3) {
+                    // Wider spread
+                    positions[i] = (Math.random() - 0.5) * 600;
+                    positions[i + 1] = (Math.random() - 0.5) * 600;
+                    positions[i + 2] = (Math.random() - 0.5) * 600;
+
+                    // Subtle indigo/blue/pink hues
+                    const hue = Math.random() < 0.5 ? 0.65 : 0.85; // Indigo or Pink
+                    color.setHSL(hue, 0.7, 0.5 + Math.random() * 0.3);
+                    colors[i] = color.r;
+                    colors[i + 1] = color.g;
+                    colors[i + 2] = color.b;
+                }
+
+                geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+                geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+
+                const material = new THREE.PointsMaterial({
+                    size: 1.5,
+                    vertexColors: true,
+                    transparent: true,
+                    opacity: 0.9,
+                    blending: THREE.AdditiveBlending
+                });
+
+                particles = new THREE.Points(geometry, material);
+                scene.add(particles);
+            };
+
+            const animate = () => {
+                animationFrameId = requestAnimationFrame(animate);
+
+                // Gentle rotation
+                particles.rotation.y += 0.0003;
+                particles.rotation.x += 0.0001;
+                particles.rotation.z += 0.00005;
+
+                // Mouse Parallax Effect
+                const targetX = mouseX * 20;
+                const targetY = mouseY * 20;
+
+                camera.position.x += (targetX - camera.position.x) * 0.02;
+                camera.position.y += (targetY - camera.position.y) * 0.02;
+                camera.lookAt(scene.position);
+
+                renderer.render(scene, camera);
+            };
+
+            const onWindowResize = () => {
+                const newWidth = container.clientWidth;
+                const newHeight = container.clientHeight;
+                camera.aspect = newWidth / newHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(newWidth, newHeight);
+            };
+
+            const onDocumentMouseMove = (event) => {
+                mouseX = (event.clientX / window.innerWidth) * 2 - 1;
+                mouseY = -(event.clientY / window.innerHeight) * 2 + 1;
+            };
+
+            window.addEventListener('resize', onWindowResize);
+            document.addEventListener('mousemove', onDocumentMouseMove);
+
+            init();
+            animate();
+        }
+
+        // --- Game Logic: Data Orb Dash (3D Three.js Game) ---
+        const OrbDashGame = (function() {
+            const canvas = document.getElementById('game-canvas');
+            const scoreElement = document.getElementById('game-score');
+            const timeElement = document.getElementById('game-time');
+            const highScoreElement = document.getElementById('game-high-score');
+            const startButton = document.getElementById('game-start-btn');
+            const messageElement = document.getElementById('game-message');
+
+            if (typeof THREE === 'undefined') {
+                messageElement.textContent = "Error: Three.js not loaded for 3D game.";
+                return { init: () => {} };
+            }
+
+            let scene, camera, renderer;
+            let player;
+            let orbs = [];
+            let animationId;
+            let isRunning = false;
+            let score = 0;
+            const WIN_SCORE = 10;
+            let startTime = 0;
+            let elapsedTime = 0;
+            let bestTime = parseFloat(localStorage.getItem('orbDashBestTime') || 0);
+
+            // Movement Variables (Shared for PC keys and Mobile buttons)
+            let moveState = { forward: 0, backward: 0, left: 0, right: 0 };
+            const speed = 0.5;
+            const playerRadius = 2.5;
+            const orbRadius = 1.5;
+            const gameBounds = 20; // Half the size of the playable area
+
+            highScoreElement.textContent = bestTime > 0 ? `${bestTime.toFixed(2)}s` : 'N/A';
+
+            // --- 3D Setup ---
+
+            function initThreeJSGame() {
+                // 1. Scene and Renderer
+                scene = new THREE.Scene();
+                renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true, alpha: true });
+                renderer.setPixelRatio(window.devicePixelRatio);
+                renderer.setClearColor(0x0d111c, 0);
+
+                // 2. Camera
+                const fov = 75;
+                const aspect = canvas.width / canvas.height;
+                const near = 0.1;
+                const far = 1000;
+                camera = new THREE.PerspectiveCamera(fov, aspect, near, far);
+                
+                // Positioned above and looking down slightly
+                camera.position.set(0, 25, 30);
+                camera.lookAt(new THREE.Vector3(0, 0, 0)); 
+
+                // 3. Lighting (Soft ambient + subtle spotlight for focus)
+                const ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
+                scene.add(ambientLight);
+
+                const spotLight = new THREE.SpotLight(0x4f46e5, 2, 80, Math.PI / 4, 0.5, 2);
+                spotLight.position.set(0, 40, 0);
+                scene.add(spotLight);
+
+                // 4. Ground Plane (The 'Data Grid')
+                const gridMaterial = new THREE.MeshPhongMaterial({
+                    color: 0x1f2937, 
+                    shininess: 10,
+                    transparent: true,
+                    opacity: 0.8
+                });
+                const gridGeometry = new THREE.BoxGeometry(gameBounds * 2, 1, gameBounds * 2);
+                const ground = new THREE.Mesh(gridGeometry, gridMaterial);
+                ground.position.y = -0.5;
+                scene.add(ground);
+
+                // 5. Player (The 'Data Processor')
+                const playerGeometry = new THREE.BoxGeometry(playerRadius * 2, playerRadius * 2, playerRadius * 2);
+                const playerMaterial = new THREE.MeshLambertMaterial({ color: 0x4f46e5 }); // Indigo Cube
+                player = new THREE.Mesh(playerGeometry, playerMaterial);
+                player.position.set(0, playerRadius, 0);
+                scene.add(player);
+                
+                // Initial size setting
+                resizeGameCanvas();
+                window.addEventListener('resize', resizeGameCanvas);
+            }
+
+            function resizeGameCanvas() {
+                const maxW = document.querySelector('#game-feature').offsetWidth - 64; // container width - padding
+                canvas.width = Math.min(600, maxW);
+                canvas.height = Math.min(400, maxW * 0.66); // Maintain aspect ratio
+                
+                if (camera && renderer) {
+                    camera.aspect = canvas.width / canvas.height;
+                    camera.updateProjectionMatrix();
+                    renderer.setSize(canvas.width, canvas.height);
+                }
+            }
+            
+            // --- Game Object Management ---
+            
+            function spawnOrb() {
+                const orbGeometry = new THREE.TorusGeometry(orbRadius, 0.5, 8, 30);
+                const orbColor = Math.random() > 0.5 ? 0xf472b6 : 0x818cf8; // Pink or Indigo
+                
+                // Use a basic material for the orb mesh
+                const orbMesh = new THREE.Mesh(orbGeometry, new THREE.MeshBasicMaterial({ color: orbColor }));
+
+                // Add a glowing effect using a point light on the orb
+                const pointLight = new THREE.PointLight(orbColor, 1.5, 100);
+                orbMesh.add(pointLight); // Attach light to mesh for position sync
+                
+                // Spawn within bounds, slightly above the ground
+                const margin = orbRadius + 1;
+                const halfBounds = gameBounds - margin;
+                orbMesh.position.set(
+                    (Math.random() - 0.5) * halfBounds * 2,
+                    orbRadius * 2, // Floating slightly above ground
+                    (Math.random() - 0.5) * halfBounds * 2
+                );
+
+                scene.add(orbMesh);
+                orbs.push(orbMesh);
+            }
+            
+            function resetOrbs() {
+                orbs.forEach(orb => scene.remove(orb));
+                orbs = [];
+                for (let i = 0; i < 5; i++) {
+                    spawnOrb(); // Keep 5 orbs active at a time
+                }
+            }
+
+            // --- Game Logic ---
+
+            function checkCollision() {
+                const playerPos = player.position;
+                const collisionDistance = playerRadius + orbRadius;
+
+                for (let i = orbs.length - 1; i >= 0; i--) {
+                    const orb = orbs[i];
+                    const distance = playerPos.distanceTo(orb.position);
+
+                    if (distance < collisionDistance) {
+                        // Collision detected!
+                        score++;
+                        scoreElement.textContent = `${score}/10`;
+                        
+                        // Remove the orb's light and mesh
+                        const light = orb.children.find(c => c instanceof THREE.PointLight);
+                        if (light) orb.remove(light);
+                        scene.remove(orb);
+
+                        orbs.splice(i, 1);
+                        
+                        // Spawn a new one immediately
+                        if (score < WIN_SCORE) {
+                            spawnOrb();
+                        }
+
+                        playSound('game', 'C6'); // Collection sound
+
+                        if (score >= WIN_SCORE) {
+                            endGame(true);
+                        }
+                    }
+                }
+            }
+
+            function updateMovement() {
+                const deltaX = (moveState.right - moveState.left) * speed;
+                const deltaZ = (moveState.backward - moveState.forward) * speed;
+
+                player.position.x += deltaX;
+                player.position.z += deltaZ;
+
+                // Keep player within bounds (X-Z Plane)
+                const margin = playerRadius;
+                player.position.x = Math.min(gameBounds - margin, Math.max(-gameBounds + margin, player.position.x));
+                player.position.z = Math.min(gameBounds - margin, Math.max(-gameBounds + margin, player.position.z));
+            }
+            
+            function updateOrbs() {
+                orbs.forEach(orb => {
+                    // Gentle rotation for visual effect
+                    orb.rotation.x += 0.05;
+                    orb.rotation.y += 0.02;
+                    // Pulse or float movement
+                    orb.position.y = playerRadius * 2 + Math.sin(Date.now() * 0.005) * 0.5;
+                });
+            }
+
+            function updateTime() {
+                if (isRunning) {
+                    elapsedTime = (Date.now() - startTime) / 1000;
+                    timeElement.textContent = `${elapsedTime.toFixed(2)}s`;
+                }
+            }
+            
+            function gameLoop() {
+                if (!isRunning) return;
+
+                updateMovement();
+                updateOrbs();
+                checkCollision();
+                updateTime();
+
+                renderer.render(scene, camera);
+                animationId = requestAnimationFrame(gameLoop);
+            }
+
+            // --- Game State Functions ---
+
+            function resetGame() {
+                if (!scene) initThreeJSGame();
+                
+                score = 0;
+                elapsedTime = 0;
+                player.position.set(0, playerRadius, 0);
+                
+                resetOrbs();
+                
+                scoreElement.textContent = `${score}/10`;
+                timeElement.textContent = '0.00s';
+                messageElement.textContent = 'Press START or move to begin.';
+                startButton.textContent = 'START GAME';
+                isRunning = false;
+
+                // Reset move state
+                moveState = { forward: 0, backward: 0, left: 0, right: 0 };
+
+                // Render once to show setup
+                renderer.render(scene, camera);
+            }
+
+            function startGame() {
+                if (isRunning) return;
+                
+                // If it's a restart, reset everything
+                if (score >= WIN_SCORE || elapsedTime > 0) {
+                    resetGame();
+                }
+
+                isRunning = true;
+                startTime = Date.now();
+                messageElement.textContent = 'Collecting data...';
+                startButton.textContent = 'RESTART';
+                
+                canvas.classList.add('border-indigo-400');
+                canvas.classList.remove('border-red-500');
+
+                playSound('game', 'C5');
+                gameLoop();
+            }
+
+            function endGame(win) {
+                isRunning = false;
+                cancelAnimationFrame(animationId);
+                
+                if (win) {
+                    const finalTime = elapsedTime;
+                    let message = `SUCCESS! Collected 10 Orbs in ${finalTime.toFixed(2)}s!`;
+
+                    if (bestTime === 0 || finalTime < bestTime) {
+                        bestTime = finalTime;
+                        localStorage.setItem('orbDashBestTime', bestTime);
+                        highScoreElement.textContent = `${bestTime.toFixed(2)}s`;
+                        message = `NEW BEST TIME! ${finalTime.toFixed(2)}s.`;
+                        playSound('game', ['C6', 'E6', 'G6'], '4n'); // Win chord
+                    } else {
+                        playSound('game', 'G5');
+                    }
+                    messageElement.textContent = message;
+                } else {
+                    messageElement.textContent = 'Game Over. Click RESTART.';
+                    playSound('game', 'C3', '4n'); // Game over sound
+                }
+            }
+
+            // --- Input Handlers (PC Keyboard) ---
+            
+            function handleKeyDown(e) {
+                // Allows starting game by pressing a movement key
+                if (!isRunning && (e.key === 'w' || e.key === 'ArrowUp' || e.key === 's' || e.key === 'ArrowDown' || e.key === 'a' || e.key === 'ArrowLeft' || e.key === 'd' || e.key === 'ArrowRight')) {
+                    startGame();
+                }
+                if (!isRunning) return;
+
+                switch (e.key) {
+                    case 'w':
+                    case 'ArrowUp': moveState.forward = 1; break;
+                    case 's':
+                    case 'ArrowDown': moveState.backward = 1; break;
+                    case 'a':
+                    case 'ArrowLeft': moveState.left = 1; break;
+                    case 'd':
+                    case 'ArrowRight': moveState.right = 1; break;
+                }
+                e.preventDefault(); // Prevent scrolling on PC with arrow keys
+            }
+
+            function handleKeyUp(e) {
+                if (!isRunning) return;
+                switch (e.key) {
+                    case 'w':
+                    case 'ArrowUp': moveState.forward = 0; break;
+                    case 's':
+                    case 'ArrowDown': moveState.backward = 0; break;
+                    case 'a':
+                    case 'ArrowLeft': moveState.left = 0; break;
+                    case 'd':
+                    case 'ArrowRight': moveState.right = 0; break;
+                }
+            }
+
+            // --- Input Handlers (Mobile Buttons) ---
+            
+            function handleButtonStart(e) {
+                e.preventDefault();
+                // Start game if not running and a button is pressed
+                if (!isRunning) startGame();
+
+                const direction = e.currentTarget.dataset.move;
+                if (direction) {
+                    moveState[direction] = 1;
+                }
+            }
+
+            function handleButtonEnd(e) {
+                e.preventDefault();
+                const direction = e.currentTarget.dataset.move;
+                if (direction) {
+                    moveState[direction] = 0;
+                }
+            }
+
+            // Public interface
+            return {
+                init: function() {
+                    startButton.addEventListener('click', startGame);
+                    
+                    // PC Keyboard setup
+                    document.addEventListener('keydown', handleKeyDown);
+                    document.addEventListener('keyup', handleKeyUp);
+
+                    // Mobile Button setup (using both touch and mouse events for robustness)
+                    const controlButtons = document.querySelectorAll('#game-mobile-controls .control-btn');
+                    controlButtons.forEach(btn => {
+                        // Touch events (Primary for mobile)
+                        btn.addEventListener('touchstart', handleButtonStart);
+                        btn.addEventListener('touchend', handleButtonEnd);
+                        btn.addEventListener('touchcancel', handleButtonEnd); 
+                        
+                        // Mouse events (Useful for desktop testing or holding mouse button down)
+                        btn.addEventListener('mousedown', handleButtonStart);
+                        btn.addEventListener('mouseup', handleButtonEnd);
+                        btn.addEventListener('mouseleave', (e) => { // Stop movement if mouse leaves while holding
+                            if (e.buttons === 1) handleButtonEnd(e);
+                        }); 
+                    });
+
+                    // Initialize the game world
+                    initThreeJSGame();
+                    resetGame();
+                }
+            };
+        })();
+
+        // --- Content Rendering Functions ---
+
+        function renderAbout() {
+            document.getElementById('about-content').textContent = PORTFOLIO_DATA.about;
+            document.getElementById('profile-photo').src = PORTFOLIO_DATA.profilePhoto;
+            document.getElementById('profile-photo').onerror = function() {
+                this.onerror=null;
+                this.src='https://placehold.co/128x128/4f46e5/ffffff?text=DS';
+            };
+        }
+
+        function renderSkills() {
+            const container = document.getElementById('skills-container');
+            container.innerHTML = PORTFOLIO_DATA.skills.map(section => `
+                <div>
+                    <h4 class="text-xl font-bold mb-4 text-indigo-300 border-b border-gray-700/80 pb-2">${section.category}</h4>
+                    <div class="flex flex-wrap gap-3 text-mono">
+                        ${section.items.map(item => `
+                            <span class="skill-tag px-4 py-1.5 bg-gray-700/70 text-gray-200 text-sm rounded-full border border-indigo-500/50 shadow-md transition duration-200 hover:bg-indigo-600 hover:text-white transform hover:scale-105">${item}</span>
+                        `).join('')}
+                    </div>
+                </div>
+            `).join('');
+
+             // Add sound to skill tags
+            document.querySelectorAll('.skill-tag').forEach(tag => {
+                tag.addEventListener('mouseenter', () => playSound('ui', 'G4'));
+            });
+        }
+
+        function renderEducation() {
+            const container = document.getElementById('education-container');
+            container.innerHTML = PORTFOLIO_DATA.education.map(item => `
+                <div class="education-item border-l-4 border-indigo-500 pl-4 transition duration-300 hover:bg-gray-700/30 p-2 rounded transform hover:translate-x-1">
+                    <h4 class="text-xl font-bold text-white">${item.level}</h4>
+                    <p class="text-indigo-400 italic mb-1">${item.institution}</p>
+                    <p class="text-sm text-gray-400">${item.details}</p>
+                    ${item.link ? `
+                        <a href="${item.link}" target="_blank" rel="noopener noreferrer" class="text-xs text-indigo-300 hover:underline flex items-center mt-1" onclick="event.stopPropagation(); playSound('ui', 'A5');">
+                            Institution Link
+                            <svg class="w-3 h-3 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg>
+                        </a>
+                    ` : ''}
+                </div>
+            `).join('');
+
+            document.querySelectorAll('.education-item').forEach(item => {
+                item.addEventListener('mouseenter', () => playSound('ui', 'C4'));
+            });
+        }
+
+        function renderCertifications() {
+            const container = document.getElementById('certifications-container');
+            container.innerHTML = PORTFOLIO_DATA.certifications.map(cert => `
+                <div class="cert-item flex flex-col sm:flex-row justify-between items-start sm:items-center bg-gray-700/50 p-4 rounded-lg shadow transition duration-300 hover:shadow-xl hover:shadow-indigo-400/30 transform hover:scale-[1.01] cursor-pointer">
+                    <div>
+                        <span class="font-semibold text-white block">${cert.title}</span>
+                        <span class="text-sm text-indigo-400">${cert.provider}</span>
+                    </div>
+                    <a href="${cert.link}" target="_blank" rel="noopener noreferrer" class="cert-link text-indigo-300 text-sm hover:underline flex items-center mt-2 sm:mt-0" onclick="event.stopPropagation(); playSound('ui', 'A5');">
+                        View Certificate
+                        <svg class="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg>
+                    </a>
+                </div>
+            `).join('');
+
+            document.querySelectorAll('.cert-item').forEach(item => {
+                item.addEventListener('mouseenter', () => playSound('ui', 'E4'));
+            });
+        }
+
+        function renderProjects() {
+            const container = document.getElementById('projects-container');
+            container.innerHTML = PORTFOLIO_DATA.projects.map(project => `
+                <div class="project-card bg-gray-900/50 p-6 rounded-xl shadow-xl border border-gray-700 hover:border-indigo-400 transition duration-300 transform hover:scale-[1.02] cursor-default">
+                        <h3 class="text-xl sm:text-2xl font-bold mb-3 text-pink-300 break-words whitespace-normal">${project.title}</h3>
+                    <p class="text-gray-400 mb-4 text-sm">${project.description}</p>
+                    <a href="${project.github}" target="_blank" rel="noopener noreferrer" class="action-btn inline-flex items-center text-white bg-indigo-600 px-4 py-2 rounded-full text-sm font-semibold hover:bg-indigo-500 transition duration-200">
+                        ${PORTFOLIO_DATA.contact.find(c => c.label === 'GitHub').icon}
+                        <span class="ml-2">View Code</span>
+                    </a>
+                </div>
+            `).join('');
+
+            document.querySelectorAll('.project-card').forEach(card => {
+                card.addEventListener('mouseenter', () => playSound('ui', 'G3'));
+            });
+        }
+
+        function renderContact() {
+            // Target the container in the footer
+            const container = document.getElementById('footer-contact-container');
+            container.innerHTML = PORTFOLIO_DATA.contact.map(item => `
+                <a href="${item.link}" target="_blank" rel="noopener noreferrer" class="footer-contact-link flex items-center space-x-2 p-3 sm:p-4 rounded-full bg-gray-800/70 text-indigo-300 shadow-lg transition duration-300 hover:bg-indigo-600 hover:text-white transform min-w-[140px] justify-center">
+                    ${item.icon}
+                    <span class="font-semibold text-sm sm:text-base">${item.label}</span>
+                </a>
+            `).join('');
+
+            // Add sound to contact buttons
+            document.querySelectorAll('.footer-contact-link').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    playSound('ui', 'B4');
+                });
+            });
+        }
+
+        // --- Core Application and Event Setup ---
+
+        document.addEventListener('DOMContentLoaded', () => {
+            // Render all dynamic content
+            renderAbout();
+            renderSkills();
+            renderEducation();
+            renderCertifications();
+            renderProjects();
+            renderContact(); // Now renders to the footer container
+
+            // Setup 3D background
+            setupThreeJS();
+
+            // Setup mini-game
+            OrbDashGame.init();
+
+            // Add sound to primary action buttons
+            document.querySelectorAll('.action-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    playSound('ui', 'B4');
+                });
+            });
+
+            // Scroll-to-Top Button Logic
+            const scrollToTopBtn = document.getElementById('scrollToTopBtn');
+            scrollToTopBtn.addEventListener('click', () => {
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+                playSound('ui', 'G5');
+            });
+
+            window.addEventListener('scroll', () => {
+                if (window.scrollY > 500) {
+                    scrollToTopBtn.classList.remove('opacity-0', 'translate-y-4', 'pointer-events-none');
+                    scrollToTopBtn.classList.add('opacity-100', 'translate-y-0');
+                } else {
+                    scrollToTopBtn.classList.remove('opacity-100', 'translate-y-0');
+                    scrollToTopBtn.classList.add('opacity-0', 'translate-y-4', 'pointer-events-none');
+                }
+            });
+
+            // Add hover sound to main section cards
+            document.querySelectorAll('.section-card').forEach(card => {
+                // Exclude the game card from the generic sound, as it has its own logic
+                if (card.parentElement.id !== 'game-feature') {
+                    card.addEventListener('mouseenter', () => playSound('ui', 'A3'));
+                }
+            });
+
+        });
+    </script>
+</body>
+</html>
